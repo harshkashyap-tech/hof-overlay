@@ -11,7 +11,6 @@
   Sync across OBS/devices needs Firebase (CONFIG.firebase.databaseURL); same-browser tabs work free.
   IP: national-colour kits + public-domain flags only — no club crests / licensed shirts; "FIFA" kept out.
   XI format: "Surname Number" e.g. "Shomurodov 9". List the KEEPER FIRST, then in formation order.
-  Let's go
 -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -135,9 +134,9 @@
   .sbar .p{ font-family:"JetBrains Mono"; font-size:11px; color:var(--muted); }
   .sbar a{ font-family:"JetBrains Mono"; font-size:12px; text-decoration:none; color:#cdd3df; border:1px solid #20283a; padding:6px 10px; border-radius:8px; }
   .sbar a:hover{ border-color:#3a455f; }
-  .screen{ margin:20px auto; max-width:1200px; width:calc(100% - 40px); aspect-ratio:16/9; position:relative; border-radius:14px; overflow:hidden; background:radial-gradient(120% 160% at 25% 0%,#243049,#10131c 55%,#0a0d14); box-shadow:inset 0 0 0 1px #1b2130,0 30px 80px rgba(0,0,0,.5); }
+  .screen{ margin:20px auto; max-width:1200px; width:calc(100% - 40px); aspect-ratio:16/9; position:relative; border-radius:14px; overflow:hidden; background:radial-gradient(120% 160% at 25% 0%,#243049,#10131c 55%,#0a0d14); box-shadow:inset 0 0 0 1px #1b2130,0 30px 80px rgba(0,0,0,.5); z-index:1; }
   .screen .hint{ position:absolute; left:50%; top:42%; transform:translate(-50%,-50%); font-family:"JetBrains Mono"; font-size:13px; color:#2f3850; letter-spacing:1px; }
-  .cp{ max-width:1200px; margin:0 auto 70px; width:calc(100% - 40px); }
+  .cp{ max-width:1200px; margin:0 auto 70px; width:calc(100% - 40px); position:relative; z-index:10; }
   .cp-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:16px; }
   .cp-card{ background:#0C0F18; border:1px solid #1A2030; border-radius:14px; padding:16px 18px; }
   .cp-card h2{ font-family:"JetBrains Mono"; font-weight:700; font-size:12px; letter-spacing:2px; color:var(--muted); margin:0 0 14px; text-transform:uppercase; }
@@ -147,7 +146,7 @@
   .cp select,.cp input,.cp textarea{ font-family:"Inter"; font-size:14px; color:#eef1f6; background:#11151f; border:1px solid #222a3a; border-radius:9px; padding:9px 11px; }
   .cp select,.cp input[type=text],.cp input[type=time],.cp input[type=number],.cp input[type=password]{ flex:1; min-width:110px; }
   .cp textarea{ width:100%; min-height:48px; resize:vertical; line-height:1.5; }
-  .cp button{ font-family:"JetBrains Mono"; font-weight:700; font-size:13px; color:#0A0C12; background:#cdd3df; border:0; border-radius:9px; padding:9px 13px; cursor:pointer; }
+  .cp button{ font-family:"JetBrains Mono"; font-weight:700; font-size:13px; color:#0A0C12; background:#cdd3df; border:0; border-radius:9px; padding:9px 13px; cursor:pointer; pointer-events:auto; position:relative; }
   .cp button:hover{ background:#fff; }
   .cp button.ghost{ background:transparent; color:#cdd3df; border:1px solid #222a3a; }
   .cp button.ghost.on{ background:#cdd3df; color:#0A0C12; }
@@ -264,7 +263,7 @@ const COUNTRIES = {
 };
 const flagUrl = iso => "https://flagcdn.com/w160/"+iso+".png";
 
-const CONFIG = { firebase:{ databaseURL:"https://high-on-football-87608-default-rtdb.asia-southeast1.firebasedatabase.app/" }, football:{ key:"via-proxy", base:"https://high-on-football-proxy.harshkashyap307.workers.dev", fixtureId:"", auto:false }, youtube:{ key:"AIzaSyAL15uGvikDetxya0VLtszK9taJdWVv6LQ", channelId:"UC2WpIv4rV4qBpOlW0MDjejQ", auto:false } };
+const CONFIG = { firebase:{ databaseURL:"" }, football:{ key:"", base:"https://v3.football.api-sports.io", fixtureId:"", auto:false }, youtube:{ key:"", channelId:"", auto:false } };
 
 const state = {
   home:"UZB", away:"COL", homeScore:0, awayScore:0,
@@ -422,7 +421,7 @@ setInterval(()=>{ if(state.phase==="live"&&state.running){ state.clockSeconds++;
 const hash=location.hash.replace("#","");
 const isOverlay=hash==="overlay", isControl=hash==="control", isStudio=!isOverlay&&!isControl;
 let ctl=false; function pushCtl(){ if(ctl) sync.publish(state); }
-function fitStage(){ const st=$("stage"); if(isOverlay){ st.style.transform="scale(1)"; return; } const sc=document.querySelector(".screen"); if(!sc)return; st.style.transform="scale("+(sc.clientWidth/1920)+")"; st.style.width="1920px"; st.style.height="1080px"; }
+function fitStage(){ const st=$("stage"); if(isOverlay){ st.style.transform="scale(1)"; return; } const sc=document.querySelector(".screen"); if(!sc)return; const s=sc.clientWidth/1920; st.style.transform="scale("+s+")"; st.style.width="1920px"; st.style.height="1080px"; sc.style.height=(1080*s)+"px"; }
 function applyView(){ if(isOverlay){ document.body.classList.add("mode-overlay"); $("studio").style.display="none"; } else if(isControl){ $("stage").style.display="none"; document.querySelector(".screen").style.display="none"; } else { document.querySelector(".screen").appendChild($("stage")); } $("syncTag")&&($("syncTag").textContent="sync: "+sync.mode); }
 
 let fbTimer=null, ytTimer=null;
@@ -498,6 +497,7 @@ function ui(){
 }
 if(isOverlay){ sync.subscribe(s=>{ Object.assign(state,s); render(); }); }
 applyView(); ui(); render(); fitStage(); window.addEventListener("resize",fitStage);
+window.addEventListener("hashchange",()=>location.reload());
 </script>
 </body>
 </html>
