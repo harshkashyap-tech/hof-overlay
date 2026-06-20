@@ -144,7 +144,7 @@ const state = {
 };
 
 /* sync (shared Firebase node "frames", else BroadcastChannel) */
-const CONFIG = { firebase:{ databaseURL:"" } };
+const CONFIG = { firebase:{ databaseURL:"https://high-on-football-87608-default-rtdb.asia-southeast1.firebasedatabase.app/" } };
 const sync = (() => {
   const useFb=!!CONFIG.firebase.databaseURL; let onRemote=()=>{};
   let bc=null; try{ bc=new BroadcastChannel("hof-frames"); }catch(e){}
