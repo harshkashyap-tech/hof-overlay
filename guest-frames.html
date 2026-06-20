@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Glass Glow — Guest Frames (OBS)</title>
+<!--
+  GUEST FRAMES OVERLAY  (companion to wc-overlay-glass.html)
+  Transparent 1920x1080 page that draws neon-glass frames + name tags + LIVE
+  pills around your guest cams. The frame interiors are transparent — your
+  VDO.Ninja / webcam sources sit BEHIND, aligned into each window.
+
+  VIEWS (URL hash):
+    #overlay -> frames only, transparent. Add to OBS, ABOVE the guest video
+                sources and BELOW the main graphics overlay.
+    #control -> operator panel (layout, names, LIVE per tile, alignment guide).
+    (no hash)-> studio preview.
+
+  OBS LAYER ORDER (top to bottom):
+    1. wc-overlay-glass.html#overlay   (scorebug / formation / subs)
+    2. guest-frames.html#overlay       (these frames)
+    3. guest video sources             (VDO.Ninja browser sources)
+    4. background / reacted-to video
+
+  ALIGNMENT: turn on "Show guide" in the panel to see each tile's exact
+  x / y / w / h — type those into each guest source's Transform in OBS so the
+  video lands inside the frame.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=JetBrains+Mono:wght@500;700;800&family=Inter:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{ --a1:#2BD9C8; --a2:#7A5CFF; --ink:#fff; --muted:#9aa3b5; }
+  *{ box-sizing:border-box; } html,body{ margin:0; padding:0; }
+  body{ font-family:"Inter",system-ui,sans-serif; color:var(--ink); }
+
+  .stage{ position:relative; width:1920px; height:1080px; transform-origin:top left; pointer-events:none; }
+
+  .gf-tile{ position:absolute; border-radius:20px; }
+  .gf-frame{ position:absolute; inset:0; border-radius:20px; padding:3px;
+    background:linear-gradient(135deg,var(--a1),var(--a2) 55%,var(--a1));
+    -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite:xor; mask-composite:exclude;
+    box-shadow:0 0 26px color-mix(in srgb,var(--a1) 55%,transparent), 0 0 60px color-mix(in srgb,var(--a2) 28%,transparent);
+    animation:framePulse 3.8s ease-in-out infinite; }
+  .gf-frame::after{ content:""; position:absolute; inset:3px; border-radius:17px; box-shadow:inset 0 0 0 1px rgba(255,255,255,.22), inset 0 18px 34px rgba(255,255,255,.05); }
+  @keyframes framePulse{ 50%{ box-shadow:0 0 32px color-mix(in srgb,var(--a2) 58%,transparent), 0 0 74px color-mix(in srgb,var(--a1) 30%,transparent);} }
+  /* neon corner brackets */
+  .gf-cnr{ position:absolute; width:30px; height:30px; border:3px solid var(--a1); }
+  .gf-cnr.tl{ top:-2px; left:-2px; border-right:none; border-bottom:none; border-radius:20px 0 0 0; }
+  .gf-cnr.tr{ top:-2px; right:-2px; border-left:none; border-bottom:none; border-radius:0 20px 0 0; }
+  .gf-cnr.bl{ bottom:-2px; left:-2px; border-right:none; border-top:none; border-radius:0 0 0 20px; }
+  .gf-cnr.br{ bottom:-2px; right:-2px; border-left:none; border-top:none; border-radius:0 0 20px 0; }
+
+  .gf-live{ position:absolute; top:12px; left:12px; display:flex; align-items:center; gap:7px; padding:5px 11px; border-radius:999px;
+    background:rgba(10,13,20,.55); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); box-shadow:inset 0 0 0 1px rgba(255,255,255,.18);
+    font-family:"JetBrains Mono"; font-weight:800; font-size:13px; letter-spacing:2px; }
+  .gf-live::before{ content:""; width:8px; height:8px; border-radius:50%; background:#FF2A4F; box-shadow:0 0 8px #FF2A4F; animation:blink 1.4s ease-in-out infinite; }
+  @keyframes blink{ 50%{ opacity:.3; } }
+  .gf-live.off{ display:none; }
+
+  .gf-tag{ position:absolute; left:18px; bottom:-18px; display:flex; flex-direction:column; align-items:flex-start; gap:7px; }
+  .gf-tag .nm{ font-family:"Anton"; font-size:30px; letter-spacing:.5px; line-height:.9; color:#fff;
+    padding:9px 20px; border-radius:13px; border-left:5px solid var(--a1);
+    background:linear-gradient(135deg, rgba(12,15,24,.94), rgba(22,17,46,.94));
+    box-shadow:0 12px 26px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.16); }
+  .gf-tag .hd{ font-family:"JetBrains Mono"; font-weight:800; font-size:15px; letter-spacing:.5px; color:#fff;
+    padding:6px 15px; border-radius:999px; transform:translateX(14px);
+    background:rgba(12,15,24,.92);
+    box-shadow:0 8px 18px rgba(0,0,0,.5), inset 0 0 0 1px color-mix(in srgb,var(--a1) 60%,transparent); }
+
+  .gf-ph{ position:absolute; inset:0; border-radius:20px; display:none; align-items:center; justify-content:center;
+    background:linear-gradient(135deg, rgba(122,92,255,.22), rgba(43,217,200,.16)); font-family:"JetBrains Mono"; color:rgba(255,255,255,.35); letter-spacing:2px; }
+  body.preview .gf-ph{ display:flex; }
+
+  .gf-guide{ position:absolute; inset:0; border-radius:20px; display:none; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+    background:rgba(43,217,200,.14); border:2px dashed rgba(43,217,200,.7); }
+  body.guide .gf-guide{ display:flex; }
+  .gf-guide .n{ font-family:"Anton"; font-size:64px; color:rgba(255,255,255,.85); line-height:.8; }
+  .gf-guide .r{ font-family:"JetBrains Mono"; font-weight:700; font-size:15px; color:#bdeee8; }
+
+  body.mode-overlay{ background:transparent !important; }
+  body.mode-overlay .stage{ position:fixed; top:0; left:0; }
+
+  /* studio + control */
+  .studio{ min-height:100vh; background:#06070B; }
+  .sbar{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; padding:14px 20px; border-bottom:1px solid #161A24; background:#0A0C12; }
+  .sbar h1{ font-family:"Anton"; font-weight:400; font-size:20px; margin:0; }
+  .sbar .p{ font-family:"JetBrains Mono"; font-size:11px; color:var(--muted); }
+  .sbar a{ font-family:"JetBrains Mono"; font-size:12px; text-decoration:none; color:#cdd3df; border:1px solid #20283a; padding:6px 10px; border-radius:8px; }
+  .screen{ margin:20px auto; max-width:1200px; width:calc(100% - 40px); aspect-ratio:16/9; position:relative; border-radius:14px; overflow:hidden; background:radial-gradient(120% 160% at 25% 0%,#243049,#10131c 55%,#0a0d14); box-shadow:inset 0 0 0 1px #1b2130,0 30px 80px rgba(0,0,0,.5); }
+  .cp{ max-width:1000px; margin:0 auto 70px; width:calc(100% - 40px); }
+  .cp-card{ background:#0C0F18; border:1px solid #1A2030; border-radius:14px; padding:16px 18px; margin-bottom:16px; }
+  .cp-card h2{ font-family:"JetBrains Mono"; font-weight:700; font-size:12px; letter-spacing:2px; color:var(--muted); margin:0 0 14px; text-transform:uppercase; }
+  .cp-row{ display:flex; align-items:center; gap:10px; margin-bottom:12px; flex-wrap:wrap; }
+  .cp label{ font-family:"Inter"; font-size:12px; color:#aeb6c6; min-width:54px; }
+  .cp input{ font-family:"Inter"; font-size:14px; color:#eef1f6; background:#11151f; border:1px solid #222a3a; border-radius:9px; padding:9px 11px; flex:1; min-width:120px; }
+  .cp button{ font-family:"JetBrains Mono"; font-weight:700; font-size:13px; color:#0A0C12; background:#cdd3df; border:0; border-radius:9px; padding:9px 13px; cursor:pointer; }
+  .cp button.ghost{ background:transparent; color:#cdd3df; border:1px solid #222a3a; }
+  .cp button.ghost.on{ background:#cdd3df; color:#0A0C12; }
+  .cp .seg{ display:flex; gap:8px; flex-wrap:wrap; }
+  .cp .note{ font-family:"JetBrains Mono"; font-size:11px; color:#5b6580; margin-top:8px; line-height:1.6; }
+  .cp .tilebar{ font-family:"JetBrains Mono"; font-size:11px; color:#8a93a6; min-width:54px; }
+</style>
+</head>
+<body>
+
+<div class="stage" id="stage"></div>
+
+<div class="studio" id="studio">
+  <div class="sbar"><h1>Guest Frames</h1><span class="p" id="syncTag">sync: local</span><span style="flex:1"></span>
+    <a href="#overlay" target="_blank" rel="noopener">Overlay only ↗</a><a href="#control" target="_blank" rel="noopener">Control only ↗</a></div>
+  <div class="screen" id="screen"></div>
+
+  <div class="cp" id="cp">
+    <div class="cp-card"><h2>Layout</h2>
+      <div class="cp-row seg"><button class="ghost" data-lay="solo">Solo</button><button class="ghost" data-lay="duo">2-up</button><button class="ghost" data-lay="quad">2×2 grid</button></div>
+      <div class="cp-row"><button class="ghost" id="guideBtn">Show guide: OFF</button><span class="note">Guide shows each tile's x / y / w / h to type into the OBS source transform.</span></div>
+    </div>
+    <div class="cp-card"><h2>Guests</h2><div id="tileRows"></div></div>
+  </div>
+</div>
+
+<script>
+const LAYOUTS = {
+  solo: [ {x:480,y:200,w:960,h:540} ],
+  duo:  [ {x:150,y:300,w:780,h:438}, {x:990,y:300,w:780,h:438} ],
+  quad: [ {x:210,y:150,w:740,h:416}, {x:970,y:150,w:740,h:416}, {x:210,y:596,w:740,h:416}, {x:970,y:596,w:740,h:416} ]
+};
+
+const state = {
+  layout:"quad",
+  tiles:[
+    {name:"ISHAN",  handle:"@theishantake", live:true},
+    {name:"LALA",   handle:"@KickItWithLala", live:true},
+    {name:"NATHAN", handle:"@SportsNutNathan", live:true},
+    {name:"PIYUSH", handle:"@LetMeTalkCity", live:true}
+  ],
+  guide:false
+};
+
+/* sync (shared Firebase node "frames", else BroadcastChannel) */
+const CONFIG = { firebase:{ databaseURL:"https://high-on-football-87608-default-rtdb.asia-southeast1.firebasedatabase.app/" } };
+const sync = (() => {
+  const useFb=!!CONFIG.firebase.databaseURL; let onRemote=()=>{};
+  let bc=null; try{ bc=new BroadcastChannel("hof-frames"); }catch(e){}
+  if(bc) bc.onmessage=e=>onRemote(e.data);
+  let ref=null;
+  if(useFb){ const a=document.createElement("script"); a.src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js";
+    const b=document.createElement("script"); b.src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js";
+    document.head.appendChild(a); a.onload=()=>document.head.appendChild(b);
+    b.onload=()=>{ firebase.initializeApp(CONFIG.firebase); ref=firebase.database().ref("frames"); ref.on("value",s=>{const v=s.val(); if(v) onRemote(v);}); }; }
+  return { mode:useFb?"firebase":"local", publish(s){ if(bc) bc.postMessage(s); if(ref) ref.set(s); }, subscribe(cb){ onRemote=cb; } };
+})();
+
+const $=id=>document.getElementById(id);
+const hash=location.hash.replace("#",""), isOverlay=hash==="overlay", isControl=hash==="control", isStudio=!isOverlay&&!isControl;
+let ctl=false; function push(){ if(ctl) sync.publish(state); }
+
+function render(){
+  document.body.classList.toggle("guide", state.guide && !isOverlay);
+  document.body.classList.toggle("preview", isStudio || isControl);
+  const rects=LAYOUTS[state.layout]||LAYOUTS.quad;
+  $("stage").innerHTML = rects.map((r,i)=>{
+    const t=state.tiles[i]||{name:"",handle:"",live:false};
+    return `<div class="gf-tile" style="left:${r.x}px;top:${r.y}px;width:${r.w}px;height:${r.h}px">
+      <div class="gf-ph">GUEST ${i+1}</div>
+      <div class="gf-frame"></div>
+      <div class="gf-cnr tl"></div><div class="gf-cnr tr"></div><div class="gf-cnr bl"></div><div class="gf-cnr br"></div>
+      <div class="gf-live ${t.live?'':'off'}">LIVE</div>
+      <div class="gf-tag"><span class="nm">${t.name||''}</span><span class="hd">${t.handle||''}</span></div>
+      <div class="gf-guide"><span class="n">${i+1}</span><span class="r">${r.x} · ${r.y} · ${r.w} × ${r.h}</span></div>
+    </div>`;
+  }).join("");
+}
+
+function fit(){ const st=$("stage"); if(isOverlay){ st.style.transform="scale(1)"; return; } const sc=$("screen"); if(!sc)return; st.style.transform="scale("+(sc.clientWidth/1920)+")"; }
+
+function applyView(){
+  if(isOverlay){ document.body.classList.add("mode-overlay"); $("studio").style.display="none"; }
+  else if(isControl){ $("screen").style.display="none"; document.querySelector(".sbar").appendChild($("stage")); $("stage").style.display="none"; }
+  else { $("screen").appendChild($("stage")); }
+  $("syncTag")&&($("syncTag").textContent="sync: "+sync.mode);
+}
+
+function ui(){
+  ctl=isStudio||isControl; if(!ctl) return;
+  const commit=()=>{ render(); fit(); refl(); push(); };
+  const rows=$("tileRows");
+  rows.innerHTML=state.tiles.map((t,i)=>`<div class="cp-row">
+    <span class="tilebar">Tile ${i+1}</span>
+    <input data-f="name" data-i="${i}" value="${t.name}" placeholder="name" style="max-width:140px">
+    <input data-f="handle" data-i="${i}" value="${t.handle}" placeholder="@handle">
+    <button class="ghost ${t.live?'on':''}" data-live="${i}">LIVE</button>
+  </div>`).join("");
+  rows.querySelectorAll("input").forEach(inp=>inp.oninput=e=>{ state.tiles[+e.target.dataset.i][e.target.dataset.f]=e.target.value; commit(); });
+  rows.querySelectorAll("[data-live]").forEach(b=>b.onclick=()=>{ const i=+b.dataset.live; state.tiles[i].live=!state.tiles[i].live; commit(); });
+  document.querySelectorAll("[data-lay]").forEach(b=>b.onclick=()=>{ state.layout=b.dataset.lay; commit(); });
+  $("guideBtn").onclick=()=>{ state.guide=!state.guide; commit(); };
+  refl();
+  function refl(){
+    document.querySelectorAll("[data-lay]").forEach(b=>b.classList.toggle("on",b.dataset.lay===state.layout));
+    $("guideBtn").textContent="Show guide: "+(state.guide?"ON":"OFF"); $("guideBtn").classList.toggle("on",state.guide);
+    rows.querySelectorAll("[data-live]").forEach(b=>b.classList.toggle("on",state.tiles[+b.dataset.live].live));
+  }
+  window.refl=refl;
+}
+function refl(){}
+
+if(isOverlay){ sync.subscribe(s=>{ Object.assign(state,s); render(); fit(); }); }
+
+applyView(); ui(); render(); fit(); window.addEventListener("resize",fit);
+</script>
+</body>
+</html>
