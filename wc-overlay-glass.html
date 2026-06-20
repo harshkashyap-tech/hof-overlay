@@ -498,8 +498,8 @@ function ui(){
   $("inQr").oninput=e=>{ state.qrLink=e.target.value.trim(); commit(); };
   $("subsToggle").onclick=()=>{ state.subsShow=!state.subsShow; commit(); };
   $("subsSim").onclick=()=>{ state.subs+=7; $("subsNow").textContent=state.subs.toLocaleString(); commit(); };
-  $("ytKey").oninput=e=>CONFIG.youtube.key=e.target.value;
-  $("ytId").oninput=e=>CONFIG.youtube.channelId=e.target.value;
+  $("ytKey").value=CONFIG.youtube.key; $("ytKey").oninput=e=>CONFIG.youtube.key=e.target.value;
+  $("ytId").value=CONFIG.youtube.channelId; $("ytId").oninput=e=>CONFIG.youtube.channelId=e.target.value;
   $("ytAuto").onclick=()=>{ CONFIG.youtube.auto=!CONFIG.youtube.auto; $("ytAuto").textContent="Auto: "+(CONFIG.youtube.auto?"ON":"OFF"); $("ytAuto").classList.toggle("on",CONFIG.youtube.auto); if(CONFIG.youtube.auto){ pollSubs(); ytTimer=setInterval(pollSubs,45000);} else clearInterval(ytTimer); };
   $("tickerToggle").onclick=()=>{ state.tickerOn=!state.tickerOn; commit(); };
   $("inHFmt").oninput=e=>{ state.homeFmt=e.target.value; commit(); };
