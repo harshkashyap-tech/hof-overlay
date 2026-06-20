@@ -238,10 +238,9 @@
         <div class="cp-row"><label id="lblHXI">Home XI</label><input type="text" id="inHFmt" value="4-3-3" style="max-width:90px"><textarea id="inHXI">Nematov 1, Khusanov 5, Egamberdiev 4, Sodikov 6, Tursunov 3, Iskanderov 8, Urunov 17, Masharipov 10, Shomurodov 9, Fayzullaev 11, Turgunboev 7, SUB Yakhshiboev 22, SUB Jaloliddinov 14</textarea></div>
         <div class="cp-row"><label id="lblAXI">Away XI</label><input type="text" id="inAFmt" value="4-2-3-1" style="max-width:90px"><textarea id="inAXI">Vargas 1, Munoz 4, Lucumi 23, Cuesta 3, Mojica 12, Lerma 8, Rios 5, Arias 11, James 10, Diaz 7, Cordoba 9, SUB Borja 19, SUB Sinisterra 17</textarea></div></div>
 
-      <div class="cp-card" style="grid-column:1/-1"><h2>Auto data — football (optional)</h2>
-        <div class="cp-row"><label>API key</label><input type="password" id="fbKey" placeholder="API-Football key"></div>
-        <div class="cp-row"><label>Fixture ID</label><input type="text" id="fbFix" placeholder="e.g. 1208xxxx"><button class="ghost" id="fbAuto">Auto: OFF</button><span class="p" id="fbStatus"></span></div>
-        <div class="note">Pulls score, clock, line-ups (XI + bench + formation + numbers). If api-sports is CORS-blocked on a public page, point <code>CONFIG.football.base</code> at a small proxy. Manual override always wins.</div></div>
+      <div class="cp-card" style="grid-column:1/-1"><h2>Auto score — worldcup26.ir (free, no key)</h2>
+        <div class="cp-row"><button class="ghost" id="fbAuto">Auto: OFF</button><span class="p" id="fbStatus"></span></div>
+        <div class="note">Polls <code>worldcup26.ir/get/games</code> every 20s. Finds the match by team names (from the Left/Right dropdowns above). Auto-fills score, match clock, and goal scorers. Lineups stay manual — copy from FotMob ~40 min before kickoff.</div></div>
     </div>
     <div class="note" id="setupNote"></div>
   </div>
@@ -253,17 +252,29 @@ const COUNTRIES = {
   POR:{name:"Portugal",iso:"pt",accent:"#DA291C",rank:6}, ARG:{name:"Argentina",iso:"ar",accent:"#75AADB",rank:2},
   ESP:{name:"Spain",iso:"es",accent:"#C60B1E",rank:1}, ENG:{name:"England",iso:"gb-eng",accent:"#CE1124",rank:4},
   FRA:{name:"France",iso:"fr",accent:"#0055A4",rank:3}, GER:{name:"Germany",iso:"de",accent:"#111111",rank:9},
-  BRA:{name:"Brazil",iso:"br",accent:"#009B3A",rank:5}, USA:{name:"USA",iso:"us",accent:"#3C3B6E",rank:16},
+  BRA:{name:"Brazil",iso:"br",accent:"#009B3A",rank:5}, USA:{name:"United States",iso:"us",accent:"#3C3B6E",rank:16},
   MEX:{name:"Mexico",iso:"mx",accent:"#006847",rank:14}, CAN:{name:"Canada",iso:"ca",accent:"#FF0000",rank:31},
   NED:{name:"Netherlands",iso:"nl",accent:"#FF6C00",rank:7}, CRO:{name:"Croatia",iso:"hr",accent:"#E60000",rank:10},
   JPN:{name:"Japan",iso:"jp",accent:"#1A2B6B",rank:17}, KOR:{name:"South Korea",iso:"kr",accent:"#C60C30",rank:23},
   MAR:{name:"Morocco",iso:"ma",accent:"#C1272D",rank:12}, SEN:{name:"Senegal",iso:"sn",accent:"#00853F",rank:18},
   NOR:{name:"Norway",iso:"no",accent:"#BA0C2F",rank:25}, AUS:{name:"Australia",iso:"au",accent:"#FFB81C",rank:24},
-  BEL:{name:"Belgium",iso:"be",accent:"#E1A100",rank:8}, URU:{name:"Uruguay",iso:"uy",accent:"#5BA3DC",rank:11}
+  BEL:{name:"Belgium",iso:"be",accent:"#E1A100",rank:8}, URU:{name:"Uruguay",iso:"uy",accent:"#5BA3DC",rank:11},
+  RSA:{name:"South Africa",iso:"za",accent:"#007A4D",rank:62}, CZE:{name:"Czech Republic",iso:"cz",accent:"#D7141A",rank:36},
+  BIH:{name:"Bosnia",iso:"ba",accent:"#002395",rank:60}, PAR:{name:"Paraguay",iso:"py",accent:"#C8102E",rank:55},
+  HAI:{name:"Haiti",iso:"ht",accent:"#00209F",rank:87}, SCO:{name:"Scotland",iso:"gb-sct",accent:"#005EB8",rank:42},
+  TUR:{name:"Turkey",iso:"tr",accent:"#E30A17",rank:38}, QAT:{name:"Qatar",iso:"qa",accent:"#8D1B3D",rank:44},
+  SUI:{name:"Switzerland",iso:"ch",accent:"#D52B1E",rank:19}, CIV:{name:"Ivory Coast",iso:"ci",accent:"#FF8200",rank:39},
+  ECU:{name:"Ecuador",iso:"ec",accent:"#FFD100",rank:29}, CUR:{name:"Curaçao",iso:"cw",accent:"#002B7F",rank:95},
+  SWE:{name:"Sweden",iso:"se",accent:"#006AA7",rank:22}, TUN:{name:"Tunisia",iso:"tn",accent:"#E70013",rank:35},
+  IRN:{name:"Iran",iso:"ir",accent:"#239F40",rank:27}, NZL:{name:"New Zealand",iso:"nz",accent:"#1D1D1B",rank:83},
+  EGY:{name:"Egypt",iso:"eg",accent:"#CE1126",rank:33}, CPV:{name:"Cape Verde",iso:"cv",accent:"#003893",rank:64},
+  KSA:{name:"Saudi Arabia",iso:"sa",accent:"#006C35",rank:53}, IRQ:{name:"Iraq",iso:"iq",accent:"#007A3D",rank:47},
+  ALG:{name:"Algeria",iso:"dz",accent:"#006233",rank:34}, AUT:{name:"Austria",iso:"at",accent:"#ED2939",rank:26},
+  JOR:{name:"Jordan",iso:"jo",accent:"#007A33",rank:70}
 };
 const flagUrl = iso => "https://flagcdn.com/w160/"+iso+".png";
 
-const CONFIG = { firebase:{ databaseURL:"https://high-on-football-87608-default-rtdb.asia-southeast1.firebasedatabase.app/" }, football:{ key:"via-proxy", base:"https://high-on-football-proxy.harshkashyap307.workers.dev/", fixtureId:"", auto:false }, youtube:{ key:"AIzaSyAL15uGvikDetxya0VLtszK9taJdWVv6LQ", channelId:"UC2WpIv4rV4qBpOlW0MDjejQ", auto:false } };
+const CONFIG = { firebase:{ databaseURL:"https://high-on-football-87608-default-rtdb.asia-southeast1.firebasedatabase.app/" }, football:{ base:"https://worldcup26.ir", auto:false }, youtube:{ key:"AIzaSyAL15uGvikDetxya0VLtszK9taJdWVv6LQ", channelId:"UC2WpIv4rV4qBpOlW0MDjejQ", auto:false } };
 
 const state = {
   home:"UZB", away:"COL", homeScore:0, awayScore:0,
@@ -425,20 +436,26 @@ function fitStage(){ const st=$("stage"); if(isOverlay){ st.style.transform="sca
 function applyView(){ if(isOverlay){ document.body.classList.add("mode-overlay"); $("studio").style.display="none"; } else if(isControl){ $("stage").style.display="none"; document.querySelector(".screen").style.display="none"; } else { document.querySelector(".screen").appendChild($("stage")); } $("syncTag")&&($("syncTag").textContent="sync: "+sync.mode); }
 
 let fbTimer=null, ytTimer=null;
-async function pollFootball(){ if(!CONFIG.football.auto||!CONFIG.football.key||!CONFIG.football.fixtureId) return;
-  try{ const r=await fetch(CONFIG.football.base+"/fixtures?id="+CONFIG.football.fixtureId,{headers:{"x-apisports-key":CONFIG.football.key}}); const j=await r.json(); const f=j.response&&j.response[0];
-    if(f){ state.homeScore=f.goals.home||0; state.awayScore=f.goals.away||0; const sh=f.fixture.status.short, el=f.fixture.status.elapsed;
-      if(sh==="NS")state.phase="pre"; else if(sh==="HT")state.phase="ht"; else if(["FT","AET","PEN"].indexOf(sh)>=0)state.phase="ft"; else { state.phase="live"; state.running=true; if(el!=null)state.clockSeconds=el*60; }
-      $("fbStatus").textContent="● "+sh; commitCtl(); } }catch(e){ $("fbStatus").textContent="error (CORS? use proxy)"; } }
-async function pollLineups(){ if(!CONFIG.football.auto||!CONFIG.football.key||!CONFIG.football.fixtureId) return;
-  try{ const r=await fetch(CONFIG.football.base+"/fixtures/lineups?fixture="+CONFIG.football.fixtureId,{headers:{"x-apisports-key":CONFIG.football.key}}); const j=await r.json(); const a=j.response||[];
-    if(a.length>=2){ assignLineup("home",a[0]); assignLineup("away",a[1]); commitCtl(); } }catch(e){} }
-function assignLineup(side,d){ if(!d)return; const fmt=d.formation||"";
-  const xi=(d.startXI||[]).map(p=>p.player.name+(p.player.number!=null?" "+p.player.number:"")); const bench=(d.substitutes||[]).map(p=>"SUB "+p.player.name+(p.player.number!=null?" "+p.player.number:""));
-  const all=xi.concat(bench).join(", ");
-  if(side==="home"){ state.homeFmt=fmt||state.homeFmt; state.homeXI=all; if(d.coach&&d.coach.name)state.homeMgr=d.coach.name; }
-  else { state.awayFmt=fmt||state.awayFmt; state.awayXI=all; if(d.coach&&d.coach.name)state.awayMgr=d.coach.name; }
-  if(isStudio||isControl){ const F=side==="home"?"H":"A"; $("in"+F+"Fmt").value=side==="home"?state.homeFmt:state.awayFmt; $("in"+F+"XI").value=all; } }
+async function pollFootball(){ if(!CONFIG.football.auto) return;
+  try{
+    const r=await fetch(CONFIG.football.base+"/get/games"); const j=await r.json(); const games=j.games||j;
+    const hName=COUNTRIES[state.home].name.toLowerCase(), aName=COUNTRIES[state.away].name.toLowerCase();
+    const m=games.find(g=>{
+      const h=(g.home_team_name_en||"").toLowerCase(), a=(g.away_team_name_en||"").toLowerCase();
+      return (h.includes(hName)&&a.includes(aName))||(h.includes(aName)&&a.includes(hName));
+    });
+    if(!m){ $("fbStatus").textContent="match not found"; return; }
+    const flipped=(m.home_team_name_en||"").toLowerCase().includes(aName);
+    const hs=parseInt(flipped?m.away_score:m.home_score,10)||0;
+    const as=parseInt(flipped?m.home_score:m.away_score,10)||0;
+    state.homeScore=hs; state.awayScore=as;
+    const te=(m.time_elapsed||"").toString().trim().toLowerCase();
+    if(te==="finished"||m.finished==="TRUE"||m.finished===true){ state.phase="ft"; state.running=false; }
+    else if(te==="half-time"||te==="ht"){ state.phase="ht"; state.running=false; }
+    else if(te===""||te==="null"||te==="not started"){ state.phase="pre"; state.running=false; }
+    else { const min=parseInt(te,10); if(!isNaN(min)){ state.phase="live"; state.clockSeconds=min*60; state.running=true; } }
+    $("fbStatus").textContent="● "+te+(flipped?" (flipped)":""); commitCtl();
+  }catch(e){ $("fbStatus").textContent="fetch error"; } }
 async function pollSubs(){ if(!CONFIG.youtube.auto||!CONFIG.youtube.key||!CONFIG.youtube.channelId) return;
   try{ const r=await fetch("https://www.googleapis.com/youtube/v3/channels?part=statistics&id="+CONFIG.youtube.channelId+"&key="+CONFIG.youtube.key); const j=await r.json(); const c=j.items&&j.items[0]&&j.items[0].statistics.subscriberCount;
     if(c!=null){ const n=parseInt(c,10); if(n!==state.subs){ state.subs=n; $("subsNow")&&($("subsNow").textContent=n.toLocaleString()); commitCtl(); } } }catch(e){} }
@@ -489,9 +506,7 @@ function ui(){
   $("inAFmt").oninput=e=>{ state.awayFmt=e.target.value; commit(); };
   $("inHXI").oninput=e=>{ state.homeXI=e.target.value; commit(); };
   $("inAXI").oninput=e=>{ state.awayXI=e.target.value; commit(); };
-  $("fbKey").oninput=e=>CONFIG.football.key=e.target.value;
-  $("fbFix").oninput=e=>CONFIG.football.fixtureId=e.target.value.trim();
-  $("fbAuto").onclick=()=>{ CONFIG.football.auto=!CONFIG.football.auto; $("fbAuto").textContent="Auto: "+(CONFIG.football.auto?"ON":"OFF"); $("fbAuto").classList.toggle("on",CONFIG.football.auto); if(CONFIG.football.auto){ pollFootball(); pollLineups(); fbTimer=setInterval(pollFootball,20000); setTimeout(pollLineups,5000);} else clearInterval(fbTimer); };
+  $("fbAuto").onclick=()=>{ CONFIG.football.auto=!CONFIG.football.auto; $("fbAuto").textContent="Auto: "+(CONFIG.football.auto?"ON":"OFF"); $("fbAuto").classList.toggle("on",CONFIG.football.auto); if(CONFIG.football.auto){ pollFootball(); fbTimer=setInterval(pollFootball,20000);} else { clearInterval(fbTimer); $("fbStatus").textContent=""; } };
   $("setupNote").innerHTML="Sync: <b style='color:#cdd3df'>"+sync.mode+"</b>. "+(sync.mode==="local"?"Same-browser test: open <code>#overlay</code> and <code>#control</code> as two tabs. For OBS set <code>CONFIG.firebase.databaseURL</code>.":"Firebase connected — syncs across OBS and devices.");
   refl();
 }
